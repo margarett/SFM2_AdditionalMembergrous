@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE modification SYSTEM "http://www.simplemachines.org/xml/modification">
+<!--Generated with Mod Manager (c) 2013 Yoshi2889-->
+<modification xmlns:smf="http://www.simplemachines.org/" xmlns="http://www.simplemachines.org/xml/modification">
+    <id>margarett:AdditionalMembergroups</id>
+    <version>1.00</version>
+    <file name="$languagedir/Modifications.english.php">
+        <operation>
+            <search position="end" />
+            <add><![CDATA[$txt['show_additional_groups'] = 'Show additional membergroups on Topic Display and Profile Summary?';
+$txt['show_additional_groups_name'] = 'Show the name of the additional membergroups? If not selected, only the stars will be shown.<br /> This is only active if the previous option is selected';]]></add>
+        </operation>
+    </file>
+    <file name="$sourcedir/Load.php">
+        <operation>
+            <search position="replace"><![CDATA[			mem.buddy_list, mg.online_color AS member_group_color, IFNULL(mg.group_name, {string:blank_string}) AS member_group,
+			pg.online_color AS post_group_color, IFNULL(pg.group_name, {string:blank_string}) AS post_group, mem.is_activated, mem.warning,
+			CASE WHEN mem.id_group = 0 OR mg.stars = {string:blank_string} THEN pg.stars ELSE mg.stars END AS stars' . (!empty($modSettings['titlesEnable']) ? ',
+			mem.usertitle' : '');
+		$select_tables = '
+			LEFT JOIN {db_prefix}log_online AS lo ON (lo.id_member = mem.id_member)
+			LEFT JOIN {db_prefix}attachments AS a ON (a.id_member = mem.id_member)
+			LEFT JOIN {db_prefix}membergroups AS pg ON (pg.id_group = mem.id_post_group)
+			LEFT JOIN {db_prefix}membergroups AS mg ON (mg.id_group = mem.id_group)';]]></search>
+            <add><![CDATA[			mem.buddy_list, mem.is_activated, ' . (!empty($modSettings['show_additional_groups']) ? ' mem.additional_groups AS additional_groups_ori,' : '') . '
+			mem.warning' . (!empty($modSettings['titlesEnable']) ? ',	mem.usertitle' : '');
+		$select_tables = '
+			LEFT JOIN {db_prefix}log_online AS lo ON (lo.id_member = mem.id_member)
+			LEFT JOIN {db_prefix}attachments AS a ON (a.id_member = mem.id_member)';]]></add>
+        </operation>
+        <operation>
+            <search position="replace"><![CDATA[			mem.time_format, mem.secret_question, mem.is_activated, mem.additional_groups, mem.smiley_set, mem.show_online,
+			mem.total_time_logged_in, mem.id_post_group, mem.notify_announcements, mem.notify_regularity, mem.notify_send_body,
+			mem.notify_types, lo.url, mg.online_color AS member_group_color, IFNULL(mg.group_name, {string:blank_string}) AS member_group,
+			pg.online_color AS post_group_color, IFNULL(pg.group_name, {string:blank_string}) AS post_group, mem.ignore_boards, mem.warning,
+			CASE WHEN mem.id_group = 0 OR mg.stars = {string:blank_string} THEN pg.stars ELSE mg.stars END AS stars, mem.password_salt, mem.pm_prefs';
+		$select_tables = '
+			LEFT JOIN {db_prefix}log_online AS lo ON (lo.id_member = mem.id_member)
+			LEFT JOIN {db_prefix}attachments AS a ON (a.id_member = mem.id_member)
+			LEFT JOIN {db_prefix}membergroups AS pg ON (pg.id_group = mem.id_post_group)
+			LEFT JOIN {db_prefix}membergroups AS mg ON (mg.id_group = mem.id_group)';]]></search>
+            <add><![CDATA[			mem.time_format, mem.secret_question, mem.is_activated, mem.is_activated, ' . (!empty($modSettings['show_additional_groups']) ? ' mem.additional_groups AS additional_groups_ori,' : '') . '
+			mem.smiley_set, mem.show_online, mem.total_time_logged_in, mem.id_post_group, mem.notify_announcements, mem.notify_regularity, mem.notify_send_body,
+			mem.notify_types, lo.url, mem.ignore_boards, mem.warning, mem.password_salt, mem.pm_prefs';
+		$select_tables = '
+			LEFT JOIN {db_prefix}log_online AS lo ON (lo.id_member = mem.id_member)
+			LEFT JOIN {db_prefix}attachments AS a ON (a.id_member = mem.id_member)';]]></add>
+        </operation>
+        <operation>
+            <search position="after"><![CDATA[	// Are we loading any moderators?  If so, fix their group data...
+]]></search>
+            <add><![CDATA[	//Did we load users?
+	if (!empty($loaded_ids) && $set !== 'minimal')
+	{
+		$membergroups_cache = cache_get_data('membergroups_list', 30);
+		if (!empty($membergroups_cache)) { //Are our membergroups cached?
+			$membergroups = $membergroups_cache;
+			unset($membergroups_cache);
+		}
+		else { //No cache, well, let's fetch them, then...
+			$membergroups = array();
+			//Load the existing membergroups. With this we can delete the left joins that existed above.
+			$request = $smcFunc['db_query']('', '
+				SELECT id_group, group_name, online_color, hidden, stars
+				FROM {db_prefix}membergroups
+				WHERE hidden < 2'
+			);
+			while ($row = $smcFunc['db_fetch_assoc']($request))
+				$membergroups[] = $row;
+			$smcFunc['db_free_result']($request);
+			//Cache our results
+			cache_put_data('membergroups_list', $membergroups, 30);
+		}
+		
+		//Now, fill all loaded members data with membergroup info
+		foreach ($user_profile as $key => &$value) {
+			//Base values
+			$value['member_group_color'] = '';
+			$value['member_group'] = '';
+			$value['stars'] = '';
+			$value['additional_groups_full'] = array();	//complete additional groups with details
+			$value['additional_groups_list'] = array(); //Only the IDs of additional membergroups.
+			//Primary group?
+			if (!empty($value['id_group'])) {
+				//Find the array key where the membergroup is
+				foreach ($membergroups as $key2 => $value2) {
+					//Fill the necessary array items
+					if ($value2['id_group'] === $value['id_group']) {
+						$value['member_group_id'] = $value2['id_group'];
+						$value['member_group_color'] = $membergroups[$key2]['online_color'];
+						$value['member_group'] = $membergroups[$key2]['group_name'];
+						$value['stars'] = $membergroups[$key2]['stars'];
+						break; //Don't run again, please...
+					}
+				}
+			}
+			//Post count group?
+			if (!empty($value['id_post_group'])) {
+				//Find the array key where the membergroup is
+				foreach ($membergroups as $key2 => $value2) {
+					//Fill the necessary array items
+					if ($value2['id_group'] === $value['id_post_group']) {
+						$value['post_group_id'] = $value2['id_group'];
+						$value['post_group_color'] = $membergroups[$key2]['online_color'];
+						$value['post_group'] = $membergroups[$key2]['group_name'];
+						if (!isset($value['stars'])) //Only fetch post count group stars of no previous ones present!
+							$value['stars'] = $membergroups[$key2]['stars'];
+						break; //Don't run again, please...	
+					}
+				}
+			}
+			//Aditional membergroups
+			if (!empty($modSettings['show_additional_groups']) && !empty($value['additional_groups_ori'])) {
+				$value['additional_groups_list'] = explode(',', $value['additional_groups_ori']);
+				$temp = array();
+
+				// Find the array key where the membergroup is
+				foreach ($membergroups as $key2 => $value2) {
+					// Are we finding our additional group?
+					if (in_array($value2['id_group'], $value['additional_groups_list'])) {
+						$temp['group_id'] = $value2['id_group'];
+						$temp['group_color'] = $membergroups[$key2]['online_color'];
+						$temp['group'] = $membergroups[$key2]['group_name'];
+						$temp['stars'] = $membergroups[$key2]['stars'];
+						$value['additional_groups_full'][] = $temp;
+					}
+				}
+			}
+		}			
+	}		
+	
+]]></add>
+        </operation>
+        <operation>
+            <search position="after"><![CDATA[	// What a monstrous array...
+	$memberContext[$user] = array(]]></search>
+            <add><![CDATA[	//Deal with additional membergroups
+	if (!empty($profile['additional_groups_full']))
+	{
+		//We need to convert the stars into real images
+		foreach ($profile['additional_groups_full'] as $key => &$value)
+		{
+			$temp = explode('#', $value['stars']);
+			$value['stars_img'] = str_repeat('<img src="' . str_replace('$language', $context['user']['language'], isset($temp[1]) ? $settings['images_url'] . '/' . $temp[1] : '') . '" alt="*" />', empty($temp[0]) || empty($temp[1]) ? 0 : $temp[0]);
+		}
+	}
+
+]]></add>
+        </operation>
+        <operation>
+            <search position="before"><![CDATA[		'group_stars' => str_repeat('<img src="' . str_replace('$language', $context['user']['language'], isset($profile['stars'][1]) ? $settings['images_url'] . '/' . $profile['stars'][1] : '') . '" alt="*" />', empty($profile['stars'][0]) || empty($profile['stars'][1]) ? 0 : $profile['stars'][0]),
+]]></search>
+            <add><![CDATA[		'additional_groups_full' => $profile['additional_groups_full'],
+		'additional_groups_list' => $profile['additional_groups_list'],
+]]></add>
+        </operation>
+    </file>
+    <file name="$sourcedir/ManageSettings.php">
+        <operation>
+            <search position="before"><![CDATA[		// Mod authors, add any settings UNDER this line. Include a comma at the end of the line and don't remove this statement!!
+]]></search>
+            <add><![CDATA[		array('check', 'show_additional_groups', '1'),
+		array('check', 'show_additional_groups_name', '1'),
+]]></add>
+        </operation>
+    </file>
+    <file name="$sourcedir/Profile-Modify.php">
+        <operation>
+            <search position="replace"><![CDATA[$curGroups = explode(',', $cur_profile['additional_groups']);]]></search>
+            <add><![CDATA[$curGroups = $cur_profile['additional_groups_list'];]]></add>
+        </operation>
+        <operation>
+            <search position="replace"><![CDATA[$old_additional_groups = explode(',', $old_profile['additional_groups']);]]></search>
+            <add><![CDATA[$old_additional_groups = $old_profile['additional_groups_list'];]]></add>
+        </operation>
+        <operation>
+            <search position="replace"><![CDATA[if (implode(',', $additional_groups) !== $old_profile['additional_groups'])]]></search>
+            <add><![CDATA[if (implode(',', $additional_groups) !== implode(',', $old_profile['additional_groups_list']))]]></add>
+        </operation>
+        <operation>
+            <search position="replace"><![CDATA[$cur_profile['additional_groups'] = implode(',', $additional_groups);]]></search>
+            <add><![CDATA[$cur_profile['additional_groups_list'] = $additional_groups;]]></add>
+        </operation>
+        <operation>
+            <search position="replace"><![CDATA[if (in_array(1, explode(',', $old_profile['additional_groups'])) || $old_profile['id_group'] == 1)]]></search>
+            <add><![CDATA[if (in_array(1, $old_profile['additional_groups_list']) || $old_profile['id_group'] == 1)]]></add>
+        </operation>
+    </file>
+    <file name="$sourcedir/Profile.php">
+        <operation>
+            <search position="replace"><![CDATA['enabled' => $cur_profile['id_group'] != 1 && !in_array(1, explode(',', $cur_profile['additional_groups'])),]]></search>
+            <add><![CDATA['enabled' => $cur_profile['id_group'] != 1 && !in_array(1, $cur_profile['additional_groups_list']),]]></add>
+        </operation>
+    </file>
+    <file name="$themedir/Display.template.php">
+        <operation>
+            <search position="after"><![CDATA[			// Show avatars, images, etc.?]]></search>
+            <add><![CDATA[			//Show additional groups, if the user has some attributed
+			if (!empty($message['member']['additional_groups_full'])) {
+				foreach($message['member']['additional_groups_full'] as $temp) {
+					if (!empty($modSettings['show_additional_groups_name']))
+						echo '
+									<li class="membergroup">', $temp['group'], '</li>';
+					echo '
+									<li class="membergroup">', $temp['stars_img'], '</li>';
+				}
+			}
+]]></add>
+        </operation>
+    </file>
+    <file name="$themedir/Profile.template.php">
+        <operation>
+            <search position="after"><![CDATA[	// Any custom fields for standard placement?]]></search>
+            <add><![CDATA[	//Show additional groups, if the user has some attributed
+	if (!empty($modSettings['show_additional_groups']) && !empty($context['member']['additional_groups_full'])) {
+		echo '<dl>';
+		foreach($context['member']['additional_groups_full'] as $temp) {
+			echo '
+						<dt>', $txt['additional_membergroups'], ':</dt>
+						<dd>', $temp['group'], '</dd>';
+		}
+		echo '</dl>';
+	}
+]]></add>
+        </operation>
+    </file>
+</modification>

@@ -1,0 +1,9 @@
+Version 1.00 // 23-11-2013
+================================================================================
++ First release
+
+Legend:
+--------------------------------------------------------------------------------
+ ! Minor change or bugfix.
+ + Feature addition or improvement.
+ - Feature or option removal.
