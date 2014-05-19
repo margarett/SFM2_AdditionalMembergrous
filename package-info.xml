@@ -4,13 +4,14 @@
 <package-info xmlns:smf="http://www.simplemachines.org/" xmlns="http://www.simplemachines.org/xml/package-info">
     <id>margarett:AdditionalMembergroups</id>
     <name>AdditionalMembergroups</name>
-    <version>1.00</version>
+    <version>1.02</version>
     <type>modification</type>
     <install for="2.0 - 2.0.99">
         <readme parsebbc="true">readme.txt</readme>
         <modification>install.xml</modification>
         <database>installDatabase.php</database>
-		<redirect url="$scripturl?action=admin;area=modsettings;sa=general" timeout="1000" />
+		<redirect url="$scripturl?action=admin;area=modsettings;sa=general" timeout="3000" />
+		
     </install>
     <uninstall for="2.0 - 2.0.99">
         <modification reverse="true">install.xml</modification>

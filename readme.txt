@@ -8,6 +8,15 @@ This MODification allows you to display all the membergroups a user is member of
 
 [b]Changelog[/b]
 [code]
+Version 1.02 // 01-04-2014
+================================================================================
+! Fixed bug: conflict with custom profile fields in topic display (thanks Westwegoman)
+! Fixed bug: undefined errors in Profile.php (thanks Westwegoman)
+
+Version 1.01 // 22-01-2014
+================================================================================
+! Fixed minor bug, not showing the post count group stars
+
 Version 1.00 // 23-11-2013
 ================================================================================
 + First release
