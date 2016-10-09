@@ -11,6 +11,13 @@
 $txt['show_additional_groups_name'] = 'Show the name of the additional membergroups? If not selected, only the stars will be shown.<br /> This is only active if the previous option is selected';]]></add>
 		</operation>
 	</file>
+	<file name="$languagedir/Modifications.russian-utf8.php">
+		<operation>
+			<search position="end" />
+			<add><![CDATA[$txt['show_additional_groups'] = 'Показывать дополнительные группы на страницах тем и в профиле?';
+$txt['show_additional_groups_name'] = 'Показывать названия дополнительных групп? Если не выбрано, будут отображаться только значки.<br /> This is only active if the previous option is selected';]]></add>
+		</operation>
+	</file>	
 	<file name="$sourcedir/Load.php">
 	<operation>
 			<search position="replace"><![CDATA[			mem.buddy_list, mg.online_color AS member_group_color, IFNULL(mg.group_name, {string:blank_string}) AS member_group,
